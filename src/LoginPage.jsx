@@ -210,16 +210,7 @@ function LoginPage({ onLoginSuccess }) {
       return
     }
 
-    if (mappedAuth.role === 'DEPO_SORUMLUSU') {
-      onLoginSuccess?.(mappedAuth)
-      return
-    }
-
-    setView('success')
-    setAlert({
-      type: 'info',
-      text: `${mappedAuth.role} rolü için panel bu projede henüz bağlı değil.`,
-    })
+    onLoginSuccess?.(mappedAuth)
   }
 
   const handleLoginSubmit = async (event) => {

@@ -615,6 +615,187 @@ const TransferEkrani = () => {
   );
 };
 
+const AdminPaneli = ({ onLogout }) => {
+  const [depolar, setDepolar] = useState([]);
+  const [afetler, setAfetler] = useState([]);
+  const [transferler, setTransferler] = useState([]);
+  const [yukleniyor, setYukleniyor] = useState(true);
+  const [hata, setHata] = useState('');
+
+  useEffect(() => {
+    let aktif = true;
+
+    const verileriCek = async () => {
+      setYukleniyor(true);
+      setHata('');
+      try {
+        const [depoData, afetData, transferData] = await Promise.all([
+          apiFetch('/api/admin/depolar'),
+          apiFetch('/api/admin/afet/aktif'),
+          apiFetch('/api/admin/transfer-talepleri'),
+        ]);
+
+        if (!aktif) return;
+        setDepolar(depoData || []);
+        setAfetler(afetData || []);
+        setTransferler(transferData || []);
+      } catch (error) {
+        if (!aktif) return;
+        setHata(error instanceof Error ? error.message : 'Admin verileri alınamadı.');
+      } finally {
+        if (aktif) setYukleniyor(false);
+      }
+    };
+
+    verileriCek();
+
+    return () => {
+      aktif = false;
+    };
+  }, []);
+
+  return (
+    <div className="min-h-screen bg-[#f8faff] text-[#111827]">
+      <header className="h-20 bg-white border-b border-[#e5e7eb] flex items-center justify-between px-10">
+        <div className="flex items-center gap-3">
+          <div className="p-3 bg-[#e0d7f9] text-[#7c3aed] rounded-2xl">
+            <ShieldCheck size={26} />
+          </div>
+          <div>
+            <h1 className="font-extrabold text-xl">Admin Paneli</h1>
+            <p className="text-sm font-medium text-[#6b7280]">Afet Destek Yönetimi</p>
+          </div>
+        </div>
+        <button
+          type="button"
+          onClick={onLogout}
+          className="flex items-center gap-2 rounded-xl border border-[#e5e7eb] px-4 py-2 text-sm font-bold text-[#6b7280] hover:bg-[#f3f4f6] hover:text-[#e11d48]"
+        >
+          <LogOut size={18} /> Çıkış Yap
+        </button>
+      </header>
+
+      <main className="max-w-6xl mx-auto p-10">
+        <div className="mb-8">
+          <h2 className="text-3xl font-extrabold tracking-tight">Genel Yönetim</h2>
+          <p className="text-[#6b7280] font-medium mt-2">
+            Backend role olarak ADMIN döndürdüğü için bu ekran açıldı.
+          </p>
+        </div>
+
+        {hata && (
+          <div className="mb-6 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm font-semibold text-red-700">
+            {hata}
+          </div>
+        )}
+
+        <div className="grid grid-cols-3 gap-4 mb-8">
+          <div className="bg-white p-5 rounded-2xl border border-[#e5e7eb] shadow-sm">
+            <p className="text-xs font-bold text-[#6b7280] uppercase mb-2">Toplam Depo</p>
+            <p className="text-3xl font-extrabold text-[#4f46e5]">{depolar.length}</p>
+          </div>
+          <div className="bg-white p-5 rounded-2xl border border-[#e5e7eb] shadow-sm">
+            <p className="text-xs font-bold text-[#6b7280] uppercase mb-2">Aktif Afet</p>
+            <p className="text-3xl font-extrabold text-red-500">{afetler.length}</p>
+          </div>
+          <div className="bg-white p-5 rounded-2xl border border-[#e5e7eb] shadow-sm">
+            <p className="text-xs font-bold text-[#6b7280] uppercase mb-2">Transfer Talebi</p>
+            <p className="text-3xl font-extrabold text-orange-500">{transferler.length}</p>
+          </div>
+        </div>
+
+        {yukleniyor ? (
+          <p className="text-center text-[#6b7280] py-16">Yükleniyor...</p>
+        ) : (
+          <div className="grid gap-6">
+            <section className="bg-white rounded-3xl border border-[#e5e7eb] shadow-sm overflow-hidden">
+              <div className="px-6 py-4 border-b border-[#e5e7eb]">
+                <h3 className="font-extrabold text-lg">Depolar</h3>
+              </div>
+              {depolar.length === 0 ? (
+                <p className="text-center text-[#6b7280] py-10">Depo verisi yok</p>
+              ) : (
+                <table className="w-full text-left text-sm">
+                  <thead className="border-b border-[#e5e7eb] bg-[#f9fafb]">
+                    <tr className="text-xs font-bold text-[#6b7280] uppercase">
+                      <th className="px-6 py-4">Depo</th>
+                      <th className="px-6 py-4">Model</th>
+                      <th className="px-6 py-4">İl</th>
+                      <th className="px-6 py-4">Malzeme</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {depolar.map((depo) => (
+                      <tr key={depo.depoId || depo.id || depo.depoAdi} className="border-b border-[#f3f4f6]">
+                        <td className="px-6 py-4 font-bold">{depo.depoAdi}</td>
+                        <td className="px-6 py-4 text-[#6b7280]">{depo.depoModeli || '-'}</td>
+                        <td className="px-6 py-4 text-[#6b7280]">{depo.ilAdı || depo.il || '-'}</td>
+                        <td className="px-6 py-4 text-[#4f46e5] font-bold">{depo.malzemeler?.length || 0}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </section>
+
+            <section className="grid grid-cols-2 gap-6">
+              <div className="bg-white rounded-3xl border border-[#e5e7eb] shadow-sm p-6">
+                <h3 className="font-extrabold text-lg mb-4">Aktif Afetler</h3>
+                {afetler.length === 0 ? (
+                  <p className="text-sm text-[#6b7280]">Aktif afet yok</p>
+                ) : (
+                  <div className="space-y-3">
+                    {afetler.map((afet, index) => (
+                      <div key={afet.afetId || index} className="rounded-2xl bg-red-50 border border-red-100 p-4">
+                        <p className="font-bold text-red-700">{afet.afetTuru}</p>
+                        <p className="text-sm text-red-600">{afet.ilAdı || afet.il || afet.baslangicTarihi || '-'}</p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div className="bg-white rounded-3xl border border-[#e5e7eb] shadow-sm p-6">
+                <h3 className="font-extrabold text-lg mb-4">Transfer Talepleri</h3>
+                {transferler.length === 0 ? (
+                  <p className="text-sm text-[#6b7280]">Transfer talebi yok</p>
+                ) : (
+                  <div className="space-y-3">
+                    {transferler.map((talep) => (
+                      <div key={talep.kaynakTalepId || talep.talepId} className="rounded-2xl bg-orange-50 border border-orange-100 p-4">
+                        <p className="font-bold text-orange-700">#{talep.kaynakTalepId || talep.talepId}</p>
+                        <p className="text-sm text-orange-600">{talep.oncelik || '-'} - {talep.aciklama || talep.açıklama || 'Açıklama yok'}</p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </section>
+          </div>
+        )}
+      </main>
+    </div>
+  );
+};
+
+const RoleBeklemeEkrani = ({ role, onLogout }) => (
+  <div className="min-h-screen bg-[#f8faff] flex items-center justify-center p-8">
+    <div className="max-w-lg w-full bg-white rounded-3xl border border-[#e5e7eb] shadow-sm p-8 text-center">
+      <h1 className="text-2xl font-extrabold mb-3">Panel Henüz Bağlı Değil</h1>
+      <p className="text-[#6b7280] font-medium mb-6">
+        Giriş başarılı ancak <span className="font-extrabold text-[#4f46e5]">{role}</span> rolü için arayüz dosyası bu projeye henüz eklenmedi.
+      </p>
+      <button
+        type="button"
+        onClick={onLogout}
+        className="rounded-xl bg-[#4f46e5] px-5 py-3 text-sm font-bold text-white"
+      >
+        Girişe Dön
+      </button>
+    </div>
+  </div>
+);
+
 const App = () => {
   const [auth, setAuth] = useState(() => ({
     token: localStorage.getItem('token') || localStorage.getItem('afet_token'),
@@ -633,11 +814,19 @@ const App = () => {
     setAuth({ token: null, role: null });
   };
 
-  if (!auth.token || auth.role !== 'DEPO_SORUMLUSU') {
+  if (!auth.token) {
     return <LoginPage onLoginSuccess={handleLoginSuccess} />;
   }
 
-  return <AfetDestekPaneli onLogout={handleLogout} />;
+  if (auth.role === 'DEPO_SORUMLUSU') {
+    return <AfetDestekPaneli onLogout={handleLogout} />;
+  }
+
+  if (auth.role === 'ADMIN') {
+    return <AdminPaneli onLogout={handleLogout} />;
+  }
+
+  return <RoleBeklemeEkrani role={auth.role} onLogout={handleLogout} />;
 };
 
 export default App;
