@@ -10,62 +10,6 @@ import 'leaflet/dist/leaflet.css';
 const TOKEN = localStorage.getItem('token');
 
 const BASE_URL = (import.meta.env.VITE_API_BASE_URL || '').replace(/\/$/, '');
-const USE_DEMO_DATA = import.meta.env.VITE_USE_DEMO_DATA === 'true';
-
-const DEMO_MALZEMELER = [
-  { id: 1, malzemeAdi: 'Su', malzemeKategori: 'İçecek', stok: 120 },
-  { id: 2, malzemeAdi: 'Battaniye', malzemeKategori: 'Barınma', stok: 18 },
-  { id: 3, malzemeAdi: 'Konserve Gıda', malzemeKategori: 'Gıda', stok: 75 },
-  { id: 4, malzemeAdi: 'İlk Yardım Seti', malzemeKategori: 'Sağlık', stok: 0 },
-];
-
-const DEMO_TALEPLER = [
-  {
-    talepId: 101,
-    kargoDurumu: 'BEKLEMEDE',
-    malzemeler: [
-      { malzemeAdi: 'Su', miktar: 20 },
-      { malzemeAdi: 'Battaniye', miktar: 5 },
-    ],
-  },
-  {
-    talepId: 102,
-    kargoDurumu: 'HAZIRLANIYOR',
-    malzemeler: [
-      { malzemeAdi: 'Konserve Gıda', miktar: 12 },
-    ],
-  },
-];
-
-const DEMO_TRANSFERLER = [
-  {
-    talepId: 201,
-    oncelik: 'ACIL',
-    kargoDurumu: 'ONAYLANDI',
-    kaynakDepoAdi: 'Ankara Merkez Depo',
-    hedefDepoAdi: 'İstanbul Kuzey Depo',
-    malzemeler: [
-      { malzemeAdi: 'Su', miktar: 50 },
-      { malzemeAdi: 'İlk Yardım Seti', miktar: 8 },
-    ],
-  },
-  {
-    talepId: 202,
-    oncelik: 'ORTA',
-    kargoDurumu: 'YOLDA',
-    kaynakDepoAdi: 'İzmir Güney Depo',
-    hedefDepoAdi: 'Bursa Depo',
-    malzemeler: [
-      { malzemeAdi: 'Battaniye', miktar: 15 },
-    ],
-  },
-];
-
-const fallbackData = {
-  '/api/depo-gorevlisi/malzeme': DEMO_MALZEMELER,
-  '/api/depo-gorevlisi/talepler/gonderilecek': DEMO_TALEPLER,
-  '/api/depo-gorevlisi/depolar-arasi-transfer/aktif': DEMO_TRANSFERLER,
-};
 
 const normalizeTransfer = (transfer) => ({
   ...transfer,
@@ -75,11 +19,9 @@ const normalizeTransfer = (transfer) => ({
 });
 
 const apiFetch = async (endpoint, options = {}) => {
-  try {
   const headers = {
     ...(options.body ? { 'Content-Type': 'application/json' } : {}),
     ...(TOKEN ? { Authorization: `Bearer ${TOKEN}` } : {}),
-    ...(BASE_URL.includes('ngrok') ? { 'ngrok-skip-browser-warning': 'true' } : {}),
     ...(options.headers || {})
   };
 
@@ -95,18 +37,8 @@ const apiFetch = async (endpoint, options = {}) => {
 
     if (res.status === 204) return null;
 
-    const text = await res.text();
-    return text ? JSON.parse(text) : null;
-  } catch (err) {
-    const method = options.method || 'GET';
-
-    if (USE_DEMO_DATA && method === 'GET' && fallbackData[endpoint]) {
-      console.warn('Backend bağlantısı yok, örnek veri gösteriliyor:', endpoint, err);
-      return fallbackData[endpoint];
-    }
-
-    throw err;
-  }
+  const text = await res.text();
+  return text ? JSON.parse(text) : null;
 };
 
 const AfetDestekPaneli = () => {
@@ -412,7 +344,7 @@ const KullaniciTaleplerEkrani = () => {
 
   const durumBadge = (d) => {
     const map = { HAZIRLANIYOR:'bg-blue-100 text-blue-700', YOLDA:'bg-purple-100 text-purple-700', TESLIM_EDILDI:'bg-green-100 text-green-700' };
-    const label = { HAZIRLANIYOR:'Haz?rlan?yor', YOLDA:'Yolda', TESLIM_EDILDI:'Teslim Edildi' };
+    const label = { HAZIRLANIYOR:'Hazırlanıyor', YOLDA:'Yolda', TESLIM_EDILDI:'Teslim Edildi' };
     return <span className={`px-3 py-1 rounded-full text-xs font-bold ${map[d] || 'bg-yellow-100 text-yellow-700'}`}>{label[d] || 'Beklemede'}</span>;
   };
 
@@ -420,7 +352,7 @@ const KullaniciTaleplerEkrani = () => {
     if (!t.kargoDurumu || t.kargoDurumu === 'BEKLEMEDE')
       return <button onClick={() => durumGuncelle(t.talepId, 'hazirla', 'HAZIRLANIYOR')} className="px-4 py-2 bg-yellow-500 text-white text-xs font-bold rounded-xl">⚙ Hazırla</button>;
     if (t.kargoDurumu === 'HAZIRLANIYOR')
-      return <button onClick={() => durumGuncelle(t.talepId, 'yola-cik', 'YOLDA')} className="px-4 py-2 bg-[#4f46e5] text-white text-xs font-bold rounded-xl">Yola ??k</button>;
+      return <button onClick={() => durumGuncelle(t.talepId, 'yola-cik', 'YOLDA')} className="px-4 py-2 bg-[#4f46e5] text-white text-xs font-bold rounded-xl">Yola Çık</button>;
     if (t.kargoDurumu === 'YOLDA')
       return <button onClick={() => durumGuncelle(t.talepId, 'teslim-edildi', 'TESLIM_EDILDI')} className="px-4 py-2 bg-green-500 text-white text-xs font-bold rounded-xl">✓ Teslim Edildi</button>;
     return <span className="text-xs text-[#6b7280]">Tamamlandı</span>;
@@ -563,7 +495,7 @@ const TransferEkrani = () => {
 
   const durumBadge = (d) => {
     const map = { HAZIRLANIYOR:'bg-blue-100 text-blue-700', YOLDA:'bg-purple-100 text-purple-700', TESLIM_EDILDI:'bg-green-100 text-green-700' };
-    const label = { HAZIRLANIYOR:'Haz?rlan?yor', YOLDA:'Yolda', TESLIM_EDILDI:'Teslim Edildi' };
+    const label = { HAZIRLANIYOR:'Hazırlanıyor', YOLDA:'Yolda', TESLIM_EDILDI:'Teslim Edildi' };
     return <span className={`px-3 py-1 rounded-full text-xs font-bold ${map[d] || 'bg-yellow-100 text-yellow-700'}`}>{label[d] || 'Beklemede'}</span>;
   };
 
@@ -576,7 +508,7 @@ const TransferEkrani = () => {
     if (!t.kargoDurumu || t.kargoDurumu === 'BEKLEMEDE' || t.kargoDurumu === 'ONAYLANDI')
       return <button onClick={() => durumGuncelle(t.talepId, 'hazirla', 'HAZIRLANIYOR')} className="px-4 py-2 bg-yellow-500 text-white text-xs font-bold rounded-xl">⚙ Hazırla</button>;
     if (t.kargoDurumu === 'HAZIRLANIYOR')
-      return <button onClick={() => durumGuncelle(t.talepId, 'yola-cik', 'YOLDA')} className="px-4 py-2 bg-[#4f46e5] text-white text-xs font-bold rounded-xl">Yola ??k</button>;
+      return <button onClick={() => durumGuncelle(t.talepId, 'yola-cik', 'YOLDA')} className="px-4 py-2 bg-[#4f46e5] text-white text-xs font-bold rounded-xl">Yola Çık</button>;
     if (t.kargoDurumu === 'YOLDA')
       return <button onClick={() => durumGuncelle(t.talepId, 'teslim-edildi', 'TESLIM_EDILDI')} className="px-4 py-2 bg-green-500 text-white text-xs font-bold rounded-xl">✓ Teslim Edildi</button>;
     return <span className="text-xs text-[#6b7280]">Tamamlandı</span>;
