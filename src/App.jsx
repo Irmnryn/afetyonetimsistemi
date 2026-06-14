@@ -237,7 +237,7 @@ const StokGirisEkrani = () => {
           malzemeId: Number(malzemeId),
           miktar: Number(miktar),
           kaynakTuru: kaynak,
-          bagisci: bagisci || undefined
+          "bagıscıAdı": bagisci || undefined
         })
       });
       const secili = malzemeler.find(m => m.id === Number(malzemeId));
