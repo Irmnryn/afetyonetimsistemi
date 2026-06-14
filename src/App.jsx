@@ -3,11 +3,10 @@ import {
   Heart, Users, Warehouse,
   Map as MapIcon, User, Plus, ShieldCheck, LogOut, Package
 } from 'lucide-react';
+import LoginPage from './LoginPage';
 
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-
-const TOKEN = localStorage.getItem('token');
 
 const BASE_URL = (import.meta.env.VITE_API_BASE_URL || '').replace(/\/$/, '');
 
@@ -19,9 +18,10 @@ const normalizeTransfer = (transfer) => ({
 });
 
 const apiFetch = async (endpoint, options = {}) => {
+  const token = localStorage.getItem('token') || localStorage.getItem('afet_token');
   const headers = {
     ...(options.body ? { 'Content-Type': 'application/json' } : {}),
-    ...(TOKEN ? { Authorization: `Bearer ${TOKEN}` } : {}),
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
     ...(options.headers || {})
   };
 
@@ -41,7 +41,7 @@ const apiFetch = async (endpoint, options = {}) => {
   return text ? JSON.parse(text) : null;
 };
 
-const AfetDestekPaneli = () => {
+const AfetDestekPaneli = ({ onLogout }) => {
   const [activeTab, setActiveTab] = useState('malzeme-listesi');
 
   const menuItems = {
@@ -98,7 +98,14 @@ const AfetDestekPaneli = () => {
               <p className="text-sm font-bold text-[#111827]">İrem</p>
               <p className="text-xs font-medium text-[#6b7280]">Depo Görevlisi</p>
             </div>
-            <LogOut size={18} className="text-[#9ca3af] hover:text-[#e11d48] cursor-pointer" />
+            <button
+              type="button"
+              onClick={onLogout}
+              className="text-[#9ca3af] hover:text-[#e11d48] cursor-pointer"
+              aria-label="Çıkış yap"
+            >
+              <LogOut size={18} />
+            </button>
           </div>
         </div>
       </div>
@@ -608,4 +615,29 @@ const TransferEkrani = () => {
   );
 };
 
-export default AfetDestekPaneli;
+const App = () => {
+  const [auth, setAuth] = useState(() => ({
+    token: localStorage.getItem('token') || localStorage.getItem('afet_token'),
+    role: localStorage.getItem('role') || localStorage.getItem('afet_role'),
+  }));
+
+  const handleLoginSuccess = ({ token, role }) => {
+    setAuth({ token, role });
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('role');
+    localStorage.removeItem('afet_token');
+    localStorage.removeItem('afet_role');
+    setAuth({ token: null, role: null });
+  };
+
+  if (!auth.token || auth.role !== 'DEPO_SORUMLUSU') {
+    return <LoginPage onLoginSuccess={handleLoginSuccess} />;
+  }
+
+  return <AfetDestekPaneli onLogout={handleLogout} />;
+};
+
+export default App;
